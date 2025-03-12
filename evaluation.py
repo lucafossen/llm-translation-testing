@@ -17,11 +17,11 @@ class EvaluationModule:
         # TODO: handle identical references flag
         """
         Calculate the average BLEU and chrF scores for the given task, with an option to use simple split.
-        
+
         Args:
             task: An instance of a translation task containing true and predicted target texts.
             use_tokenize: A boolean flag to determine whether to use SpaCy tokenization or simple whitespace split.
-        
+
         Returns:
             A tuple containing the average BLEU score and the average chrF score as floats.
         """
@@ -44,13 +44,13 @@ class EvaluationModule:
 
         # Calculate the corpus-level chrF score using the tokenized sentences
         avg_chrf_score = corpus_chrf(flat_references, tokenized_candidates)
-        
+
         return avg_bleu_score, avg_chrf_score
 
 # Usage within the same file, tests the module
 if __name__ == "__main__":
     from main import TranslationTask
-    from models import GPT_4
+    from models.openai_models import GPT_4
 
     # Get a model
     nlp_model = GPT_4()

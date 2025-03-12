@@ -1,5 +1,9 @@
 import itertools
-from models import *
+from models.interfaces import *
+from models.openai_models import *
+from models.huggingface_models import *
+from models.replicate_models import *
+from models.traditional_mt import *
 from evaluation import EvaluationModule
 from visualization import Visualization
 from iso639 import Lang
@@ -27,7 +31,7 @@ class TranslationTask:
         self.prompts = []  # Store prompts
         self.true_target_texts = []  # Store true target text
         self.pred_target_texts = [] # Store prediction results
-        
+
         # Store language pair and model
         self.source_language = source_language
         self.target_language = target_language
@@ -93,7 +97,7 @@ class TranslationTask:
             return True
         else:
             return False
-    
+
     def get_start_index(self):
         """
         Returns the index of the first line that has not been translated yet.
@@ -117,7 +121,7 @@ class TranslationTask:
                 with self.lock:
                     pbar.update(len(self.source_lines))
             return
-        
+
         # Load results if they exist
         if self.load_existing_results() == True:
             # Update start index
@@ -127,7 +131,7 @@ class TranslationTask:
                 with self.lock:
                     pbar.update(start)
             print(f" Loaded {start} results. {len(self.source_lines) - start} to go.")
-        
+
         # Read source lines from file
         with open(f"flores200_dataset/devtest/{self.source_language}.devtest", 'r', encoding='utf-8') as f:
             lines = f.readlines()
@@ -151,7 +155,7 @@ class TranslationTask:
                 # Create prompt
                 prompt = n_shot_translate_prompt(line, self.source_language, self.target_language, n=5)
                 self.prompts.append(prompt)
-                
+
                 # Translate prompt
                 translated_text = self.llm.get_result(prompt)
             print("\n" + "*"*50 + translated_text)
@@ -284,7 +288,7 @@ class TranslationTaskManager:
                 metric_score = task.get_bleu_score()
             elif metric == "chrf":
                 metric_score = task.get_chrf_score()
-            
+
             # Language pair and model (This shouldn't be here since it's not an average; I think it is a good idea to move al of this functionality into evaluation.py)
             individual_scores.setdefault(task.source_language, {}).setdefault(task.target_language, {}).setdefault(model_name, []).append(metric_score)
 
@@ -316,7 +320,7 @@ class TranslationTaskManager:
 
             for lang, scores in scores_by_language.items():
                 print(f"Language {lang}: Average {metric} score: {sum(scores) / len(scores):.4f}")
-            
+
             for lang, scores in scores_by_language_model.items():
                 print(f"Language {lang}:")
                 for model, model_scores in scores.items():
@@ -366,11 +370,11 @@ def main(config):
 
     # Task manager helps with both running and evaluating tasks
     task_manager = TranslationTaskManager()
-    
+
     # Define stop sequence (kind of a hack, but it works)
     # Currently only the evaluation module uses this, running tasks will not guarantee to stop at this sequence (Because of wonky Mistral behaviour)
     LLMInterface.stop = config['stop_sequence']
-    
+
     # Run tasks (loads existing results if they exist)
     if config['run_tasks']:
         task_manager.run_multiple_tasks(tasks, run_by_model=False)
@@ -383,7 +387,7 @@ def main(config):
             else:
                 print(f"Could not load {task.result_file}")
 
-    if config['run_evaluation']:    
+    if config['run_evaluation']:
         for task in tasks:
             task.calculate_scores()
             print(task.source_language_name, "->", task.target_language_name, task.llm.name)
@@ -398,7 +402,7 @@ def main(config):
 
         # Get current time for output directory
         current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-        
+
         # Plot the results for BLEU
         output_dir = os.path.join(config['viz_output_dir'], current_time, "bleu")
         os.makedirs(output_dir, exist_ok=True)
