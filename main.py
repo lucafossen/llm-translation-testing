@@ -419,18 +419,18 @@ def main(config):
 # - models: a list of LLMs to run
 # - langs: a list of languages to run
 # The code will run all combinations of models and languages.
-config = {
-            'run_tasks': False,
-            'run_evaluation': True,
-            'viz_output_dir': 'output_graphs',
-            'models':
-                [GPT_3_5(), GPT_4(), Llama_2_70b_base(), Mistral_7b_base(), Google()],
-
-            'langs':
-                ['eng_Latn', 'mri_Latn', 'nob_Latn'], # English, Maori, Norwegian Bokmål
-
-            'stop_sequence': '\n'
-         }
-
 if __name__ == "__main__":
+    config = {
+                'run_tasks': False,
+                'run_evaluation': True,
+                'viz_output_dir': 'output_graphs',
+                'models':
+                    [GPT_3_5(), GPT_4(), Llama_2_70b_base(), Mistral_7b_base(), Google()],
+
+                'langs':
+                    ['eng_Latn', 'mri_Latn', 'nob_Latn'], # English, Maori, Norwegian Bokmål
+
+                'stop_sequence': '\n'
+            }
+
     main(config)
