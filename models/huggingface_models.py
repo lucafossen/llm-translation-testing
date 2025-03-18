@@ -1,8 +1,8 @@
 from models.interfaces import LLMInterface
-from replicate import pipeline
 
 class HuggingfaceLLM(LLMInterface):
     def __init__(self, model_name, max_length=200):
+        from transformers import pipeline
         self.name = model_name
         self.pipeline = pipeline('text-generation', model=model_name)
         self.max_length = max_length

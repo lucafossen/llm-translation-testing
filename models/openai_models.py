@@ -1,8 +1,8 @@
 from models.interfaces import LLMInterface
-from openai import OpenAI
 
 class OpenAiInterface(LLMInterface):
     def __init__(self):
+        from openai import OpenAI
         self.client = OpenAI()
         self.model = None
         self.temperature = 0.7

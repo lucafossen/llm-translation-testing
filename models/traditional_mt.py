@@ -1,10 +1,10 @@
 from models.interfaces import TraditionalMTInterface
-from google.cloud import translate_v2 as translate
 
 class Google(TraditionalMTInterface):
     name = "google"
 
     def __init__(self):
+        from google.cloud import translate_v2 as translate
         super().__init__()
         self.client = translate.Client()
 

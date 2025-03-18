@@ -1,6 +1,6 @@
 # Import necessary classes and functions
 from prompt import n_shot_translate_prompt
-from models.openai_models import GPT_3_5
+from models.openai_models import GPT_3_5 as Model
 from main import TranslationTask
 
 # Define source and target languages
@@ -8,7 +8,7 @@ source_language = 'eng_Latn'
 target_language = 'nob_Latn'
 
 # Create an instance of the model
-model = GPT_3_5()
+model = Model()
 
 # Create a translation task
 translation_task = TranslationTask(source_language, target_language, model)
