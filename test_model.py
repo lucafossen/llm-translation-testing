@@ -1,6 +1,6 @@
 # Import necessary classes and functions
 from prompt import n_shot_translate_prompt
-from models.openai_models import GPT_3_5 as Model
+from models.huggingface_models import Mistral7B as Model
 from main import TranslationTask
 
 # Define source and target languages
