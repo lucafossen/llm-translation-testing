@@ -1,7 +1,7 @@
 from models.interfaces import LLMInterface
 
 class HuggingfaceLLM(LLMInterface):
-    def __init__(self, model_name, max_length=200):
+    def __init__(self, model_name, max_length=1000):
         from transformers import pipeline
         self.name = model_name
         self.pipeline = pipeline('text-generation', model=model_name)
@@ -33,7 +33,7 @@ class LLaMA2_7B_FP16(HuggingfaceLLM):
 class LLaMA2_7B_8bit(LLMInterface):
     name = "LLaMA 2 7B - 8bit"
 
-    def __init__(self, max_length=200):
+    def __init__(self, max_length=1000):
         from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
         import torch
 
@@ -60,7 +60,7 @@ class LLaMA2_7B_8bit(LLMInterface):
 class LLaMA2_7B_GPTQ(LLMInterface):
     name = "LLaMA 2 7B - 4bit GPTQ"
 
-    def __init__(self, max_length=200):
+    def __init__(self, max_length=1000):
         from transformers import AutoTokenizer, pipeline
         from auto_gptq import AutoGPTQForCausalLM
 
@@ -85,7 +85,7 @@ class LLaMA2_7B_GPTQ(LLMInterface):
 class LLaMA2_7B_AWQ(LLMInterface):
     name = "LLaMA 2 7B - 4bit AWQ"
 
-    def __init__(self, max_length=200):
+    def __init__(self, max_length=1000):
         from autoawq import AutoAWQForCausalLM
         from transformers import AutoTokenizer, pipeline
 
@@ -105,7 +105,7 @@ class LLaMA2_7B_AWQ(LLMInterface):
 class LLaMA2_7B_2bit(LLMInterface):
     name = "LLaMA 2 7B - 2bit (llama.cpp)"
 
-    def __init__(self, max_length=200):
+    def __init__(self, max_length=1000):
         from llama_cpp import Llama
 
         self.model_path = "/path/to/llama-2-7b.Q2_K.gguf"  # Download from TheBloke's GGUF repo
