@@ -6,11 +6,15 @@ class HuggingfaceLLM(LLMInterface):
         self.name = model_name
         self.pipeline = pipeline('text-generation', model=model_name)
         self.max_length = max_length
+        self.raw_result = ""
 
     def get_result(self, prompt):
-        response = self.pipeline(prompt, max_length=self.max_length)
-        result = response[0]['generated_text'].strip()
-        return result
+        response = self.pipeline(prompt, max_new_tokens=self.max_length)
+        result = response[0]['generated_text']
+        self.raw_result = result
+        # Remove the prompt from the result and only return the first line
+        oneliner = result.split(prompt)[1].strip()
+        return oneliner
 
 class Mistral7B(HuggingfaceLLM):
     name = "huggingface mistral-7B-v0.1"
@@ -18,11 +22,24 @@ class Mistral7B(HuggingfaceLLM):
     def __init__(self):
         super().__init__('mistralai/Mistral-7B-v0.1')
 
-class LLaMA2_7B_FP16(HuggingfaceLLM):
-    name = "LLaMA 2 7B - FP16"
+class LLaMA3_1_8b_BF16_Pretrained(HuggingfaceLLM):
+    name = "LLaMA-3.1-8B BF16"
 
     def __init__(self):
-        super().__init__('meta-llama/Llama-2-7b-hf')
+        super().__init__('meta-llama/Llama-3.1-8B')
+
+class LLaMA3_1_8b_BF16_Instruct(HuggingfaceLLM):
+    name = "LLaMA-3.1-8B Instruct"
+
+    def __init__(self):
+        super().__init__('meta-llama/Llama-3.1-8B-Instruct')
+
+class LLaMA2_13B_Chat_HF(HuggingfaceLLM):
+    name = "LLaMA 2 13B Chat - HF"
+
+    def __init__(self):
+        super().__init__('meta-llama/Llama-2-13b-chat-hf')
+
 
 class LLaMA2_7B_FP16(HuggingfaceLLM):
     name = "LLaMA 2 7B - FP16"
