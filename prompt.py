@@ -13,12 +13,12 @@ def n_shot_translate_prompt(source_text, source_langcode, target_langcode, n):
     lines_target = return_n_lines(f"flores200_dataset/dev/{target_langcode}.dev", n)
     source_name = Lang(source_langcode[0:3]).name
     target_name = Lang(target_langcode[0:3]).name
-    prompt = f"Translate the following from {source_name} to {target_name}:\n\n"
+    prompt = f"Translate the following from {source_name} to {target_name}. Only write one additional line with nothing extra:\n\n"
     for i in range(n):
         prompt += f"Source ({source_name}): {lines_source[i]}"
         prompt += f"Translation ({target_name}): {lines_target[i]}"
         prompt += "\n"
 
     prompt += f"Source ({source_name}): {source_text}\n"
-    prompt += f"Translation ({target_name}): "
+    prompt += f"Translation ({target_name}):"
     return prompt
