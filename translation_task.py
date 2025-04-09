@@ -192,16 +192,18 @@ class TranslationTaskManager:
         self.lock = threading.Lock()
         self.pbar = None
 
-    def run_multiple_tasks(self, tasks: list[TranslationTask], run_by_model: bool = False):
+    def run_multiple_tasks(self, tasks: list[TranslationTask], threading: str = "by_task"):
         # Create progress bar
         total_translations = sum(len(task.source_lines) for task in tasks)
         self.pbar = tqdm(total=total_translations, desc="Running tasks")
 
-        # Run tasks (either one thread per model or all separately)
-        if run_by_model:
+        if threading == "by_model":
             self.run_tasks_by_model(tasks)
-        else:
+        elif threading == "by_task":
             self.run_tasks_separately(tasks)
+        elif threading == "off":
+            # blank method to be implemented later
+            pass
 
     def run_tasks_separately(self, tasks: list[TranslationTask]):
         """
@@ -246,6 +248,39 @@ class TranslationTaskManager:
             thread.join()
 
         self.pbar.close()
+
+    def run_unthreaded_tasks(self, tasks: list[TranslationTask]):
+        """
+        Sort the tasks by model, instantiate each model, run tasks for that model, then delete the model instance.
+        This is by far the slowest option, but is suitable for running local models when you have limited memory.
+        """
+        # Group tasks by model name
+        tasks_by_model = {}
+        for task in tasks:
+            model_name = task.llm.name
+            if model_name not in tasks_by_model:
+                tasks_by_model[model_name] = []
+            tasks_by_model[model_name].append(task)
+
+        # Iterate over each model group
+        for model_name, model_tasks in tasks_by_model.items():
+            print(f"Running tasks unthreaded for model: {model_name}")
+
+            # Instantiate the model (assuming each LLM class supports instantiation by name)
+            model_class = model_tasks[0].llm.__class__
+            new_model = model_class(name=model_name)
+
+            # Assign the new model to each task and run tasks sequentially
+            for t in model_tasks:
+                t.llm = new_model
+                t.run_task(pbar=self.pbar)
+
+            # Release the reference to the model in each task
+            for t in model_tasks:
+                t.llm = None
+
+            # Delete (de-reference) the model instance
+            del new_model
 
     def run_task(self, task, pbar):
         """
