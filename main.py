@@ -3,6 +3,7 @@ from models.openai_models import *
 from models.huggingface_models import *
 from models.replicate_models import *
 from models.traditional_mt import *
+from models.thebloke_quants import *
 from visualization import Visualization
 import os
 from datetime import datetime
@@ -44,7 +45,6 @@ def create_tasks(config, selected_models=None, selected_pairs=None):
 def main(config):
     """
     Main function.
-
     """
     # Create tasks (one task represents a full translation run through a dataset)
     tasks = create_tasks(config)
@@ -58,7 +58,7 @@ def main(config):
 
     # Run tasks (loads existing results if they exist)
     if config['run_tasks']:
-        task_manager.run_multiple_tasks(tasks, run_by_model=False)
+        task_manager.run_multiple_tasks(tasks, threading='off')
     # If not running, just load existing results
     else:
         for task in tasks:
@@ -106,16 +106,28 @@ def main(config):
 # The code will run all combinations of models and languages.
 if __name__ == "__main__":
     config = {
-                'run_tasks': False,
+                'run_tasks': True,
                 'run_evaluation': True,
                 'viz_output_dir': 'output_graphs',
                 'models':
-                    [GPT_3_5(), GPT_4(), Llama_2_70b_base(), Mistral_7b_base(), Google()],
+                    [
+                    TheBlokeLlama2_13B_Q2_K_GGUF,
+                    TheBlokeLlama2_13B_Q3_K_S_GGUF,
+                    TheBlokeLlama2_13B_Q3_K_M_GGUF,
+                    TheBlokeLlama2_13B_Q3_K_L_GGUF,
+                    TheBlokeLlama2_13B_Q4_0_GGUF,
+                    TheBlokeLlama2_13B_Q4_K_S_GGUF,
+                    TheBlokeLlama2_13B_Q4_K_M_GGUF,
+                    TheBlokeLlama2_13B_Q5_0_GGUF,
+                    TheBlokeLlama2_13B_Q5_K_S_GGUF,
+                    TheBlokeLlama2_13B_Q5_K_M_GGUF,
+                    TheBlokeLlama2_13B_Q6_K_GGUF,
+                    TheBlokeLlama2_13B_Q8_0_GGUF
+                    ],
 
                 'langs':
-                    ['eng_Latn', 'mri_Latn', 'nob_Latn'], # English, Maori, Norwegian Bokmål
+                    ['eng_Latn', 'nob_Latn'], # English, Maori
 
                 'stop_sequence': '\n'
             }
-
     main(config)

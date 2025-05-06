@@ -42,13 +42,36 @@ class TranslationTask:
         with open(f"flores200_dataset/devtest/{self.target_language}.devtest", 'r', encoding='utf-8') as f:
             self.source_lines = f.readlines()
 
-        # Check if this task has already been completed
+        # Set result file path
         self.result_file = f"results/{self.source_language[0:3]}_{self.target_language[0:3]}_{self.llm.name}.result.json"
-        self.completed = False
+        
+        # Check if this task has already been completed
+        self.completed = self.check_if_completed()
+
+    def check_if_completed(self):
+        """
+        Checks if the translation task has already been completed.
+        Returns True if completed, False otherwise.
+        """
         if os.path.exists(self.result_file):
             with open(self.result_file, 'r', encoding='utf-8') as f:
                 result_dict = json.load(f)
-                self.completed = len(result_dict["translations"]) == len(self.source_lines)
+                return len(result_dict["translations"]) == len(self.source_lines)
+        return False
+
+    def handle_completed_task(self, pbar=None):
+        """
+        Handles the case when the task has already been completed.
+        Returns True if the task is completed and should be skipped, False otherwise.
+        """
+        if self.completed:
+            print(f"Task {self.result_file} has been fully completed. Skipping...")
+            # Update progress bar
+            if pbar is not None:
+                with self.lock:
+                    pbar.update(len(self.source_lines))
+            return True
+        return False
 
     def calculate_scores(self):
         """
@@ -106,12 +129,7 @@ class TranslationTask:
         Please note that the line numbers are 0-indexed, so start=0 refers to the first line in the file.
         """
         # Check if this task has already been completed
-        if self.completed:
-            print(f"Task {self.result_file} has been fully completed. Skipping...")
-            # Update progress bar
-            if pbar is not None:
-                with self.lock:
-                    pbar.update(len(self.source_lines))
+        if self.handle_completed_task(pbar):
             return
 
         # Load results if they exist
@@ -145,7 +163,7 @@ class TranslationTask:
                 self.prompts.append(None)
             elif issubclass(type(self.llm), LLMInterface):
                 # Create prompt
-                prompt = n_shot_translate_prompt(line, self.source_language, self.target_language, n=5)
+                prompt = n_shot_translate_prompt(line, self.source_language, self.target_language, n=0)
                 self.prompts.append(prompt)
 
                 # Translate prompt
@@ -202,8 +220,7 @@ class TranslationTaskManager:
         elif threading == "by_task":
             self.run_tasks_separately(tasks)
         elif threading == "off":
-            # blank method to be implemented later
-            pass
+            self.run_unthreaded_tasks(tasks)
 
     def run_tasks_separately(self, tasks: list[TranslationTask]):
         """
@@ -253,34 +270,48 @@ class TranslationTaskManager:
         """
         Sort the tasks by model, instantiate each model, run tasks for that model, then delete the model instance.
         This is by far the slowest option, but is suitable for running local models when you have limited memory.
+
+        This is a slightly hacky approach since the original task system includes a llm attribute,
+        but here we are extracting it and instantiating it separately.
         """
-        # Group tasks by model name
+        # Group tasks by model
         tasks_by_model = {}
         for task in tasks:
-            model_name = task.llm.name
-            if model_name not in tasks_by_model:
-                tasks_by_model[model_name] = []
-            tasks_by_model[model_name].append(task)
+            if task.llm not in tasks_by_model:
+                tasks_by_model[task.llm] = []
+            tasks_by_model[task.llm].append(task)
 
-        # Iterate over each model group
-        for model_name, model_tasks in tasks_by_model.items():
-            print(f"Running tasks unthreaded for model: {model_name}")
+        print(f"tasks_by_model: {tasks_by_model}")
 
-            # Instantiate the model (assuming each LLM class supports instantiation by name)
-            model_class = model_tasks[0].llm.__class__
-            new_model = model_class(name=model_name)
+        # Iterate over each model groups
+        for model, model_tasks in tasks_by_model.items():
+            print(f"Running tasks unthreaded for model: {model.name}")
+
+            # If the task is already completed, skip it so we avoid loading the model
+            skip = True
+            for task in model_tasks:
+                if not task.handle_completed_task(pbar=self.pbar):
+                    skip = False
+            if skip:
+                continue
+
+            # Instantiate the model
+            model_class = model_tasks[0].llm
+            model_instance = model_class()
+
+            # Run ONLY the tasks that still need work
+            pending_tasks = [t for t in model_tasks if not t.completed]
 
             # Assign the new model to each task and run tasks sequentially
-            for t in model_tasks:
-                t.llm = new_model
+            for t in pending_tasks:
+                t.llm = model_instance
                 t.run_task(pbar=self.pbar)
+                t.llm = None # De-reference the model instance (to free up memory later)
 
-            # Release the reference to the model in each task
-            for t in model_tasks:
-                t.llm = None
-
-            # Delete (de-reference) the model instance
-            del new_model
+            print(f"Deleting model: {model.name}")
+            # Delete (de-reference) the model instance, this shuold bring the reference count to 0
+            del model_instance
+            print(f"Deleted model: {model.name}")
 
     def run_task(self, task, pbar):
         """
