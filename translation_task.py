@@ -43,7 +43,8 @@ class TranslationTask:
             self.source_lines = f.readlines()
 
         # Set result file path
-        self.result_file = f"results/{self.source_language[0:3]}_{self.target_language[0:3]}_{self.llm.name}.result.json"
+        self.result_file = f"results/{self.source_language[0:3]}_{self.target_language[0:3]}_{self.llm.name.replace('/', '_')}.result.json"
+        print(f"Checking if {self.result_file} exists")
         
         # Check if this task has already been completed
         self.completed = self.check_if_completed()
@@ -200,7 +201,7 @@ class TranslationTask:
             "translations": translations
         }
 
-        with open(f"results/{self.source_language[0:3]}_{self.target_language[0:3]}_{self.llm.name}.result.json", 'w', encoding='utf-8') as f:
+        with open(self.result_file, 'w', encoding='utf-8') as f:
             json.dump(result_dict, f, ensure_ascii=False, indent=4)
 
 
