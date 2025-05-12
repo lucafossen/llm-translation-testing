@@ -1,4 +1,5 @@
 import spacy
+import string
 from nltk.translate.bleu_score import corpus_bleu
 from nltk.translate.chrf_score import corpus_chrf
 from tqdm import tqdm
@@ -13,7 +14,7 @@ except:
     nlp = spacy.load(nlp_model, disable=["parser", "ner"])
 
 class EvaluationModule:
-    def calculate_scores(self, task, use_tokenizer=True, identical_references=True):
+    def calculate_scores(self, task, use_tokenizer=False, identical_references=True):
         # TODO: handle identical references flag
         """
         Calculate the average BLEU and chrF scores for the given task, with an option to use simple split.
@@ -33,17 +34,18 @@ class EvaluationModule:
             tokenized_candidates = [[str(token) for token in nlp(candidate.lower())] for candidate in tqdm(task.pred_target_texts, desc="Tokenizing candidates")]
         else:
             # Tokenize the reference and candidate sentences using .split() with tqdm progress bar
-            tokenized_references = [[ref.lower().split()] for ref in tqdm(task.true_target_texts, desc="Splitting references")]
-            tokenized_candidates = [candidate.lower().split() for candidate in tqdm(task.pred_target_texts, desc="Splitting candidates")]
+            tokenized_references = [[ref.translate(str.maketrans('', '', string.punctuation)).lower().split()] for ref in tqdm(task.true_target_texts, desc="Splitting references")]
+            tokenized_candidates = [candidate.translate(str.maketrans('', '', string.punctuation)).lower().split() for candidate in tqdm(task.pred_target_texts, desc="Splitting candidates")]
 
         # Flatten the list of references for each source sentence for chrF
         flat_references = [[ref for refs in refs_group for ref in refs] for refs_group in tokenized_references]
-
+        # Debug statement to check that references and candidates are the same shape
+        assert len(tokenized_references) == len(tokenized_candidates), f"Mismatch in shapes: {len(tokenized_references)} references vs {len(tokenized_candidates)} candidates"
         # Calculate the BLEU score using the tokenized sentences
-        avg_bleu_score = corpus_bleu(tokenized_references, tokenized_candidates)
+        avg_bleu_score = corpus_bleu(tokenized_references, tokenized_candidates) * 100
 
         # Calculate the corpus-level chrF score using the tokenized sentences
-        avg_chrf_score = corpus_chrf(flat_references, tokenized_candidates)
+        avg_chrf_score = corpus_chrf(flat_references, tokenized_candidates) * 100
 
         return avg_bleu_score, avg_chrf_score
 

@@ -52,6 +52,27 @@ class Visualization:
         ax.set_ylabel(f'{self.metric} Score')
         ax.grid(axis='y', linestyle='--', linewidth=0.5)
         self.save_plot(fig, title)
+    
+    def plot_all_line_for_language_pairs(self):
+        """
+        For each language pair in self.scores_by_pair (assumed to be a dictionary mapping
+        language pair identifiers to dictionaries of model scores), plot a line plot with
+        one point per model and save the plot.
+        """
+        for language_pair, model_scores in self.scores_by_pair.items():
+            # Check that the score for the language pair is a dict of model scores
+            if not isinstance(model_scores, dict):
+                continue  # Skip if not in the expected format
+            fig, ax = plt.subplots(figsize=(8, 4))
+            models = sorted(model_scores.keys())
+            scores = [model_scores[m] for m in models]
+            ax.plot(models, scores, marker='o', linestyle='-', color='blue')
+            title = f'Language Pair {language_pair} Model Scores'
+            ax.set_title(title)
+            ax.set_xlabel('Model')
+            ax.set_ylabel(f'{self.metric} Score')
+            ax.grid(True, linestyle='--', linewidth=0.5)
+            self.save_plot(fig, title)
 
     def plot_languages(self):
         fig, ax = plt.subplots(figsize=(6, 4))
@@ -134,6 +155,7 @@ class Visualization:
     def plot_all(self):
         self.plot_models()
         self.plot_language_pairs()
+        self.plot_all_line_for_language_pairs()
         self.plot_languages()
         self.plot_models_by_language()
         self.plot_languages_by_model()

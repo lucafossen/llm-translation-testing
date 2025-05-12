@@ -44,21 +44,27 @@ class TranslationTask:
 
         # Set result file path
         self.result_file = f"results/{self.source_language[0:3]}_{self.target_language[0:3]}_{self.llm.name.replace('/', '_')}.result.json"
-        print(f"Checking if {self.result_file} exists")
         
         # Check if this task has already been completed
         self.completed = self.check_if_completed()
+        if self.completed:
+            self.load_existing_results()
 
     def check_if_completed(self):
         """
         Checks if the translation task has already been completed.
         Returns True if completed, False otherwise.
         """
+
         if os.path.exists(self.result_file):
+            print(f"Result file {self.result_file} exists")
             with open(self.result_file, 'r', encoding='utf-8') as f:
                 result_dict = json.load(f)
                 return len(result_dict["translations"]) == len(self.source_lines)
-        return False
+        else:
+            print(f"Result file {self.result_file} does not exist.")
+            return False
+
 
     def handle_completed_task(self, pbar=None):
         """
@@ -79,7 +85,7 @@ class TranslationTask:
         Calculate BLEU and chrF scores for this task, making them available through self.get_bleu_score() and self.get_chrf_score().
         """
         # Normalize and tokenize the sentences
-        self.bleu_score, self.chrf_score = self.evaluation_module.calculate_scores(self, use_tokenizer=True)
+        self.bleu_score, self.chrf_score = self.evaluation_module.calculate_scores(self)
 
     def get_bleu_score(self):
         if self.bleu_score is None:
@@ -90,6 +96,12 @@ class TranslationTask:
         if self.chrf_score is None:
             self.calculate_scores()
         return self.chrf_score
+    
+    def run_bootstrap(self, interval=0.95):
+        """
+        Run bootstrap analysis for this task.
+        """
+        pass
 
     def load_existing_results(self):
         """
@@ -299,6 +311,18 @@ class TranslationTaskManager:
             # Instantiate the model
             model_class = model_tasks[0].llm
             model_instance = model_class()
+            print(f"PRINTING DETAILS 4: {model.name}")
+            try:
+                # Hugging-Face model / pipeline
+                print(model_instance.generation_config)      # shows sampling defaults
+                print(model_instance.config)                 # shows architectural hyper-params
+            except:
+                try:
+                    # CTransformers (GGUF) model
+                    print(model_instance.config)                   # shows sampling defaults
+                    print("n_ctx =", model_instance.context_length)
+                except:
+                    print("Error occurred while printing model details")
 
             # Run ONLY the tasks that still need work
             pending_tasks = [t for t in model_tasks if not t.completed]

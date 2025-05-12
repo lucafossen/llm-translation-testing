@@ -5,3 +5,4 @@ __pycache__/
 flores200_dataset/
 venv/
 requirements.txt
+output_graphs/

@@ -9,13 +9,14 @@ import os
 from datetime import datetime
 import os
 from translation_task import TranslationTask, TranslationTaskManager
+import json
 
 # TODO
 
 
 def create_tasks(config, selected_models=None, selected_pairs=None):
     # Create a list of tasks to run
-    tasks = []
+    tasks: list[TranslationTask] = []
 
     # Create all possible language pairs
     pairs = []
@@ -47,7 +48,7 @@ def main(config):
     Main function.
     """
     # Create tasks (one task represents a full translation run through a dataset)
-    tasks = create_tasks(config)
+    tasks: list[TranslationTask] = create_tasks(config)
 
     # Task manager helps with both running and evaluating tasks
     task_manager = TranslationTaskManager()
@@ -76,10 +77,10 @@ def main(config):
             print("\n")
 
         # Calculate and print averages for BLEU
-        individual_scores, scores_by_model_bleu, scores_by_pair_bleu, scores_by_language_bleu, scores_by_language_model_bleu = task_manager.get_averages(tasks, metric="bleu", print_results=True)
+        individual_scores_bleu, scores_by_model_bleu, scores_by_pair_bleu, scores_by_language_bleu, scores_by_language_model_bleu = task_manager.get_averages(tasks, metric="bleu", print_results=True)
 
         # Calculate and print averages for chrF
-        individual_scores, scores_by_model_chrf, scores_by_pair_chrf, scores_by_language_chrf, scores_by_language_model_chrf = task_manager.get_averages(tasks, metric="chrf", print_results=True)
+        individual_scores_chrf, scores_by_model_chrf, scores_by_pair_chrf, scores_by_language_chrf, scores_by_language_model_chrf = task_manager.get_averages(tasks, metric="chrf", print_results=True)
 
         # Get current time for output directory
         current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
@@ -88,15 +89,29 @@ def main(config):
         output_dir = os.path.join(config['viz_output_dir'], current_time, "bleu")
         os.makedirs(output_dir, exist_ok=True)
         viz_bleu = Visualization(output_location=output_dir, metric="BLEU")
-        viz_bleu.provide_data(individual_scores, scores_by_model_bleu, scores_by_pair_bleu, scores_by_language_bleu, scores_by_language_model_bleu)
+        viz_bleu.provide_data(individual_scores_bleu, scores_by_model_bleu, scores_by_pair_bleu, scores_by_language_bleu, scores_by_language_model_bleu)
         viz_bleu.plot_all()
 
         # Plot the results for chrF
         output_dir = os.path.join(config['viz_output_dir'], current_time, "chrf")
         os.makedirs(output_dir, exist_ok=True)
         viz_chrf = Visualization(output_location=output_dir, metric="chrF")
-        viz_chrf.provide_data(individual_scores, scores_by_model_chrf, scores_by_pair_chrf, scores_by_language_chrf, scores_by_language_model_chrf)
+        viz_chrf.provide_data(individual_scores_chrf, scores_by_model_chrf, scores_by_pair_chrf, scores_by_language_chrf, scores_by_language_model_chrf)
         viz_chrf.plot_all()
+
+        # Write accuracy report to a text file
+        report_file = os.path.join(config['viz_output_dir'], current_time, "scores_report.json")
+        report_data = {
+            "bleu": individual_scores_bleu,
+            "chrf": individual_scores_chrf,
+        }
+        with open(report_file, "w") as f:
+            json.dump(report_data, f, indent=4)
+        print(f"Individual scores report written to {report_file}")
+    if config['run_bootstrap']:
+        # Run bootstrap analysis
+        for task in tasks:
+            task.run_bootstrap_analysis()
 
 # Define config
 # (this is the only place where you need to change the code to run different models)
@@ -109,6 +124,7 @@ if __name__ == "__main__":
                 'run_tasks': True,
                 'run_evaluation': True,
                 'viz_output_dir': 'output_graphs',
+                'run_bootstrap': False, # Not implemented yet
                 'models':
                     [
                     TheBlokeLlama2_13B_Q2_K_GGUF,
