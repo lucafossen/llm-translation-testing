@@ -127,6 +127,7 @@ if __name__ == "__main__":
                 'run_bootstrap': False, # Not implemented yet
                 'models':
                     [
+                    LLaMA2_13B_Chat_HF,
                     TheBlokeLlama2_13B_Q2_K_GGUF,
                     TheBlokeLlama2_13B_Q3_K_S_GGUF,
                     TheBlokeLlama2_13B_Q3_K_M_GGUF,

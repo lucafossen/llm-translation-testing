@@ -1,0 +1,1 @@
+These files are small scrapbooks, often created by an LLM used to generate quick statistics. They can be safely removed without affecting other pieces of code.

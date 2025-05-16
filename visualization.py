@@ -152,6 +152,68 @@ class Visualization:
         # Adjust the figure size and layout
         plt.subplots_adjust(bottom=0.2, top=0.9, left=0.1, right=0.9)
 
+    def plot_language_pairs_by_model(self):
+        # self.individual_scores = self.individual_scores # This line is redundant and can be removed
+        
+        language_pairs = []
+        # models_set = set() # No longer needed to collect models this way
+
+        # Collect all language pairs
+        for source_lang, targets in self.individual_scores.items():
+            for target_lang, model_data in targets.items(): # model_data is still used for fetching scores
+                pair = f"{source_lang.split('_')[0]}>{target_lang.split('_')[0]}"
+                if pair not in language_pairs:
+                    language_pairs.append(pair)
+                # models_set.update(model_data.keys()) # Not needed if models list comes from self.scores_by_model
+        
+        # Use the model order from self.scores_by_model
+        models = list(self.scores_by_model.keys())
+        
+        if not models or not language_pairs:
+            print("No models or language pairs found to plot.")
+            return
+
+        fig, ax = plt.subplots(figsize=(15, 7)) # Adjusted figsize for potentially more bars
+        width = 0.8 / len(language_pairs) # Adjust bar width based on number of language pairs
+
+        model_indices = np.arange(len(models))
+
+        for i, lang_pair_str in enumerate(language_pairs):
+            scores = []
+            source_key_part, target_key_part = lang_pair_str.split('>')
+            # Find the full language keys (e.g., eng_Latn from eng)
+            full_source_key = next((sk for sk in self.individual_scores if sk.startswith(source_key_part)), None)
+            if not full_source_key:
+                scores = [0] * len(models) # Should not happen if data is consistent
+            else:
+                full_target_key = next((tk for tk in self.individual_scores[full_source_key] if tk.startswith(target_key_part)), None)
+                if not full_target_key:
+                    scores = [0] * len(models) # Should not happen
+                else:
+                    for model in models:
+                        # Get the average score for the model and language pair
+                        model_scores = self.individual_scores[full_source_key][full_target_key].get(model, [0])
+                        scores.append(sum(model_scores) / len(model_scores) if model_scores else 0)
+            
+            ax.bar(model_indices + i * width, scores, width, label=lang_pair_str)
+        
+        # ...after plotting the bars in plot_language_pairs_by_model...
+        for idx, model in enumerate(models):
+            avg_score = self.scores_by_model[model]
+            # Calculate the center position for the model's group of bars
+            center = model_indices[idx] + width * (len(language_pairs) - 1) / 2
+            # Draw a horizontal line at the average score for this model
+            ax.hlines(avg_score, center - width/2, center + width/2, colors='black', linestyles='solid', linewidth=2, label=f'Average' if idx == 0 else "")
+
+        ax.set_ylabel(f'{self.metric} Score')
+        ax.set_title(f'Language Pair Scores by Model ({self.metric})')
+        ax.set_xticks(model_indices + width * (len(language_pairs) - 1) / 2)
+        ax.set_xticklabels(models, rotation=45, ha='right')
+        ax.legend(title="Language Pairs", loc='lower right')
+        ax.grid(axis='y', linestyle='--', linewidth=0.5)
+        plt.subplots_adjust(bottom=0.25, top=0.9, left=0.1, right=0.9) # Adjust bottom margin for rotated labels
+        self.save_plot(fig, f'Language_Pairs_by_Model_{self.metric}_Scores')
+
     def plot_all(self):
         self.plot_models()
         self.plot_language_pairs()
@@ -160,6 +222,7 @@ class Visualization:
         self.plot_models_by_language()
         self.plot_languages_by_model()
         self.plot_language_pair_by_model()
+        self.plot_language_pairs_by_model() # Add the new plot here
 
 if __name__ == "__main__":
     # Example data

@@ -1,0 +1,12 @@
+iso639_lang
+matplotlib
+nltk
+numpy
+openai
+protobuf
+replicate
+spacy
+tqdm
+google-cloud-translate
+transformers
+ctransformers[cuda]>=0.2.24
